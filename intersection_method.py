@@ -1,6 +1,7 @@
 import open3d as o3d
 import numpy as np
 import transforms3d as tfs
+import time
 
 
 def r_t_to_homogeneous_matrix(R, T):
@@ -17,6 +18,7 @@ def contact_detect(matched_matrix, coincide_num_points: int, dist_max=5) -> bool
     :param dist_max: 判定重合点之间距离的阈值，即相邻点距离多近会判断为重合点
     :return: 是否发生碰撞
     """
+    start = time.time()
     hand_eye_matrix = np.loadtxt('matrix.txt')
     scene_point_cloud = o3d.io.read_point_cloud("scene_gazebo.ply", remove_nan_points=True,
                                                 remove_infinite_points=True)  # 原始点云
@@ -47,13 +49,13 @@ def contact_detect(matched_matrix, coincide_num_points: int, dist_max=5) -> bool
     r_vec = np.array([[0], [0], [0]])
     pR_matrix = tfs.euler.euler2mat(r_vec[2], r_vec[1], r_vec[0], 'szyx')
 
-    t_vec = np.array([[14], [20], [0]])  # 重合
+    t_vec = np.array([[14], [20], [65]])  # 重合
     # t_vec = np.array([[14], [20], [100]])# 未重合
 
     grasp_config_in_base = r_t_to_homogeneous_matrix(pR_matrix, t_vec)
     gripper_point_cloud.transform(grasp_config_in_base)
 
-    o3d.visualization.draw_geometries([scene_point_cloud, gripper_point_cloud, axes], mesh_show_back_face=False)
+    # o3d.visualization.draw_geometries([scene_point_cloud, gripper_point_cloud, axes], mesh_show_back_face=False)
 
     # 点云的相交、求异
     # 建立原始点云数据的kd-tree
@@ -83,6 +85,10 @@ def contact_detect(matched_matrix, coincide_num_points: int, dist_max=5) -> bool
 
     print("重合的点云数量：", len(pts_idx))
 
+    end = time.time()
+    running_time = end - start
+    print('time cost : %.5f sec' % running_time)
+
     o3d.visualization.draw_geometries([same_part, diff_part], mesh_show_back_face=False)
     print(coincide_num_points)
     if len(pts_idx) > coincide_num_points:
@@ -97,7 +103,7 @@ if __name__ == '__main__':
                                [7.41529856e-02, -9.85921327e-02, 9.92361288e-01, 9.78890064e+02],
                                [0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 1.00000000e+00]])
     dist_max = 10
-    coincide_num_points = 120
+    coincide_num_points = 80
     is_collided = contact_detect(matched_matrix, coincide_num_points, dist_max)
 
     print(is_collided)
